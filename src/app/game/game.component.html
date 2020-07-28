@@ -1,0 +1,9 @@
+<ng-container *ngIf="gameLoaded">
+  <div *ngFor="let y of numbers">
+    <ng-container *ngFor="let x of numbers">
+      <div class="board-tile">
+        <span [innerHTML]="getBoardValue(x, y)"></span>
+      </div>
+    </ng-container>
+  </div>
+</ng-container>
