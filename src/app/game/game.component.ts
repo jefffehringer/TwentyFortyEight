@@ -16,6 +16,7 @@ export class GameComponent implements OnInit {
   boardDimensions = 4;
   board: number[][];
   numbers = Array(4).fill(0).map((x, i) => i);
+  lastAdded: Tile;
 
   @HostListener('document:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent): void {
@@ -25,16 +26,15 @@ export class GameComponent implements OnInit {
     }
 
     if (event.key === 'ArrowLeft') {
-      console.log('left!');
       this.moveLeft();
     }
 
     if (event.key === 'ArrowUp') {
-      console.log('up!');
+      this.moveUp();
     }
 
     if (event.key === 'ArrowDown') {
-      console.log('down!');
+      this.moveDown();
     }
   }
 
@@ -75,10 +75,10 @@ export class GameComponent implements OnInit {
       rand = Math.floor(Math.random() * (len - 0) + 0);
 
       const tile = nulls[rand];
-      this.board[tile.x][tile.y] = 2;
-      // this.board[3][0] = 2;
+      const rand01 = Math.random();
+      this.board[tile.x][tile.y] = rand01 >= 0.5 ? 4 : 2;
 
-      console.log(tile);
+      this.lastAdded = tile;
     } else {
       // Game Over
       console.log('game over!!!!');
@@ -95,7 +95,7 @@ export class GameComponent implements OnInit {
     }
   }
 
-  findNextNonNull(start: Tile, searchDirection: 'left' | 'right'): Tile {
+  findNextNonNull(start: Tile, searchDirection: 'left' | 'right' | 'down' | 'up'): Tile {
     if (searchDirection === 'right') {
       if (start.x <= this.boardDimensions - 1) {
         for (let x = start.x; x < this.boardDimensions; x++) {
@@ -104,43 +104,128 @@ export class GameComponent implements OnInit {
           }
         }
       }
-    }
+    } else if (searchDirection === 'left') {
+        if (start.x <= this.boardDimensions - 1) {
+          for (let x = start.x; x >= 0; x--) {
+            if (this.board[x][start.y] != null) {
+              return { x, y: start.y };
+            }
+          }
+        }
+      } else if (searchDirection === 'down') {
+        if (start.y > 0) {
+          for (let y = start.y; y < this.boardDimensions; y++) {
+            if (this.board[start.x][y] != null) {
+              return { x: start.x, y };
+            }
+          }
+        }
+      } else if (searchDirection === 'up') {
+        if (start.y <= this.boardDimensions - 1) {
+          for (let y = start.y; y >= 0; y--) {
+            if (this.board[start.x][y] != null) {
+              return { x: start.x, y };
+            }
+          }
+        }
+      }
 
     return null;
   }
 
+  swapOrAdd(src: Tile, dest: Tile) {
+    if (this.board[dest.x][dest.y] === this.board[src.x][src.y]) {
+      this.board[dest.x][dest.y] += this.board[src.x][src.y];
+      this.board[src.x][src.y] = null;
+      return true;
+    } else if (this.board[dest.x][dest.y] === null) {
+      this.board[dest.x][dest.y] = this.board[src.x][src.y];
+      this.board[src.x][src.y] = null;
+      return true;
+    }
+  }
+
   moveLeft() {
+    let madeMove = false;
     for (let y = 0; y < this.boardDimensions; y++) {
       for (let x = 0; x < this.boardDimensions; x++) {
-        // If this is null, and the one to the right is not, slide to the left
-          if (x < this.boardDimensions - 1) {
-            const tile = this.findNextNonNull({x: x + 1, y}, 'right');
-            if (tile !== null) {
-              if (this.board[x][y] === this.board[tile.x][y]) {
-                this.board[x][y] += this.board[tile.x][y];
-                this.board[tile.x][y] = null;
-              } else if (this.board[x][y] === null) {
-                this.board[x][y] = this.board[tile.x][y];
-                this.board[tile.x][y] = null;
-              }
-            }
-          }
-        /*} else {
-          // It has a value. See if the value to the right is the same. Add if so
-          if (x < this.boardDimensions - 1) {
-            if (this.board[x][y] === this.board[x + 1][y]) {
-              this.board[x][y] += this.board[x + 1][y];
-              this.board[x + 1][y] = null;
-            }
-          }
-        }*/
+        let tile = this.findNextNonNull({x: x + 1, y}, 'right');
+        while (tile !== null) {
+          const lastMadeMove = this.swapOrAdd(tile, {x, y});
+          madeMove = madeMove || lastMadeMove;
+          tile = lastMadeMove ? this.findNextNonNull({x: x + 1, y}, 'right') : null;
+        }
       }
     }
 
-    this.addRandom();
+    if (madeMove) {
+      this.addRandom();
+    }
   }
 
   moveRight() {
+    let madeMove = false;
+    for (let y = 0; y < this.boardDimensions; y++) {
+      for (let x = this.boardDimensions - 1; x > 0; x--) {
+        let tile = this.findNextNonNull({x: x - 1, y}, 'left');
+        while (tile !== null) {
+          const lastMadeMove = this.swapOrAdd(tile, {x, y});
+          madeMove = madeMove || lastMadeMove;
+          tile = lastMadeMove ? this.findNextNonNull({x: x - 1, y}, 'left') : null;
+        }
+      }
+    }
 
+    if (madeMove) {
+      this.addRandom();
+    }
+  }
+
+  moveUp() {
+    let madeMove = false;
+    for (let x = 0; x < this.boardDimensions; x++) {
+      for (let y = 0; y < this.boardDimensions; y++) {
+        const tile = this.findNextNonNull({x, y: y + 1}, 'down');
+        if (tile !== null) {
+          if (this.board[x][y] === this.board[x][tile.y]) {
+            this.board[x][y] += this.board[x][tile.y];
+            this.board[x][tile.y] = null;
+            madeMove = true;
+          } else if (this.board[x][y] === null) {
+            this.board[x][y] = this.board[x][tile.y];
+            this.board[x][tile.y] = null;
+            madeMove = true;
+          }
+        }
+      }
+    }
+
+    if (madeMove) {
+      this.addRandom();
+    }
+  }
+
+  moveDown() {
+    let madeMove = false;
+    for (let x = 0; x < this.boardDimensions; x++) {
+      for (let y = this.boardDimensions; y > 0; y--) {
+        const tile = this.findNextNonNull({x, y: y - 1}, 'up');
+        if (tile !== null) {
+          if (this.board[x][y] === this.board[x][tile.y]) {
+            this.board[x][y] += this.board[x][tile.y];
+            this.board[x][tile.y] = null;
+            madeMove = true;
+          } else if (this.board[x][y] === null) {
+            this.board[x][y] = this.board[x][tile.y];
+            this.board[x][tile.y] = null;
+            madeMove = true;
+          }
+        }
+      }
+    }
+
+    if (madeMove) {
+      this.addRandom();
+    }
   }
 }

@@ -1,7 +1,7 @@
 <ng-container *ngIf="gameLoaded">
   <div *ngFor="let y of numbers">
     <ng-container *ngFor="let x of numbers">
-      <div class="board-tile">
+      <div class="board-tile" [ngClass]="{'new-tile': lastAdded.x === x && lastAdded.y === y }">
         <span [innerHTML]="getBoardValue(x, y)"></span>
       </div>
     </ng-container>
