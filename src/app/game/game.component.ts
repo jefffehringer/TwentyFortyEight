@@ -133,16 +133,18 @@ export class GameComponent implements OnInit {
     return null;
   }
 
-  swapOrAdd(src: Tile, dest: Tile) {
+  swapOrAdd(src: Tile, dest: Tile): string {
     if (this.board[dest.x][dest.y] === this.board[src.x][src.y]) {
       this.board[dest.x][dest.y] += this.board[src.x][src.y];
       this.board[src.x][src.y] = null;
-      return true;
+      return 'add';
     } else if (this.board[dest.x][dest.y] === null) {
       this.board[dest.x][dest.y] = this.board[src.x][src.y];
       this.board[src.x][src.y] = null;
-      return true;
+      return 'swap';
     }
+
+    return ''
   }
 
   moveLeft() {
@@ -152,8 +154,8 @@ export class GameComponent implements OnInit {
         let tile = this.findNextNonNull({x: x + 1, y}, 'right');
         while (tile !== null) {
           const lastMadeMove = this.swapOrAdd(tile, {x, y});
-          madeMove = madeMove || lastMadeMove;
-          tile = lastMadeMove ? this.findNextNonNull({x: x + 1, y}, 'right') : null;
+          madeMove = madeMove || lastMadeMove !== '';
+          tile = lastMadeMove === 'swap' ? this.findNextNonNull({x: x + 1, y}, 'right') : null;
         }
       }
     }
@@ -170,8 +172,8 @@ export class GameComponent implements OnInit {
         let tile = this.findNextNonNull({x: x - 1, y}, 'left');
         while (tile !== null) {
           const lastMadeMove = this.swapOrAdd(tile, {x, y});
-          madeMove = madeMove || lastMadeMove;
-          tile = lastMadeMove ? this.findNextNonNull({x: x - 1, y}, 'left') : null;
+          madeMove = madeMove || lastMadeMove !== '';
+          tile = lastMadeMove === 'swap' ? this.findNextNonNull({x: x - 1, y}, 'left') : null;
         }
       }
     }
@@ -185,17 +187,11 @@ export class GameComponent implements OnInit {
     let madeMove = false;
     for (let x = 0; x < this.boardDimensions; x++) {
       for (let y = 0; y < this.boardDimensions; y++) {
-        const tile = this.findNextNonNull({x, y: y + 1}, 'down');
-        if (tile !== null) {
-          if (this.board[x][y] === this.board[x][tile.y]) {
-            this.board[x][y] += this.board[x][tile.y];
-            this.board[x][tile.y] = null;
-            madeMove = true;
-          } else if (this.board[x][y] === null) {
-            this.board[x][y] = this.board[x][tile.y];
-            this.board[x][tile.y] = null;
-            madeMove = true;
-          }
+        let tile = this.findNextNonNull({x, y: y + 1}, 'down');
+        while (tile !== null) {
+          const lastMadeMove = this.swapOrAdd(tile, {x, y});
+          madeMove = madeMove || lastMadeMove !== '';
+          tile = lastMadeMove === 'swap' ? this.findNextNonNull({x, y: y + 1}, 'down') : null;
         }
       }
     }
@@ -209,17 +205,11 @@ export class GameComponent implements OnInit {
     let madeMove = false;
     for (let x = 0; x < this.boardDimensions; x++) {
       for (let y = this.boardDimensions; y > 0; y--) {
-        const tile = this.findNextNonNull({x, y: y - 1}, 'up');
-        if (tile !== null) {
-          if (this.board[x][y] === this.board[x][tile.y]) {
-            this.board[x][y] += this.board[x][tile.y];
-            this.board[x][tile.y] = null;
-            madeMove = true;
-          } else if (this.board[x][y] === null) {
-            this.board[x][y] = this.board[x][tile.y];
-            this.board[x][tile.y] = null;
-            madeMove = true;
-          }
+        let tile = this.findNextNonNull({x, y: y - 1}, 'up');
+        while (tile !== null) {
+          const lastMadeMove = this.swapOrAdd(tile, {x, y});
+          madeMove = madeMove || lastMadeMove !== '';
+          tile = lastMadeMove === 'swap' ? this.findNextNonNull({x, y: y - 1}, 'up') : null;
         }
       }
     }
